@@ -1,0 +1,17 @@
+{
+  "kind": "collectionType",
+  "collectionName": "course_categories",
+  "info": {
+    "name": "course_category"
+  },
+  "options": {
+    "increments": true,
+    "timestamps": true,
+    "draftAndPublish": true
+  },
+  "attributes": {
+    "title": {
+      "type": "string"
+    }
+  }
+}

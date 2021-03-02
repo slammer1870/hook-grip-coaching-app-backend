@@ -1,0 +1,52 @@
+{
+  "routes": [
+    {
+      "method": "GET",
+      "path": "/curricula",
+      "handler": "curriculum.find",
+      "config": {
+        "policies": []
+      }
+    },
+    {
+      "method": "GET",
+      "path": "/curricula/count",
+      "handler": "curriculum.count",
+      "config": {
+        "policies": []
+      }
+    },
+    {
+      "method": "GET",
+      "path": "/curricula/:id",
+      "handler": "curriculum.findOne",
+      "config": {
+        "policies": []
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/curricula",
+      "handler": "curriculum.create",
+      "config": {
+        "policies": []
+      }
+    },
+    {
+      "method": "PUT",
+      "path": "/curricula/:id",
+      "handler": "curriculum.update",
+      "config": {
+        "policies": []
+      }
+    },
+    {
+      "method": "DELETE",
+      "path": "/curricula/:id",
+      "handler": "curriculum.delete",
+      "config": {
+        "policies": []
+      }
+    }
+  ]
+}

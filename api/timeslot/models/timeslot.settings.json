@@ -1,0 +1,18 @@
+{
+  "kind": "collectionType",
+  "collectionName": "timeslots",
+  "info": {
+    "name": "timeslot",
+    "description": ""
+  },
+  "options": {
+    "increments": true,
+    "timestamps": true,
+    "draftAndPublish": true
+  },
+  "attributes": {
+    "date": {
+      "type": "datetime"
+    }
+  }
+}

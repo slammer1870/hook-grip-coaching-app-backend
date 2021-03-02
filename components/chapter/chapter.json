@@ -1,0 +1,18 @@
+{
+  "collectionName": "components_chapter_chapters",
+  "info": {
+    "name": "chapter",
+    "icon": "archive"
+  },
+  "options": {},
+  "attributes": {
+    "title": {
+      "type": "string"
+    },
+    "lesson": {
+      "type": "component",
+      "repeatable": true,
+      "component": "chapter.lesson"
+    }
+  }
+}

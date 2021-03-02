@@ -1,0 +1,27 @@
+{
+  "kind": "collectionType",
+  "collectionName": "curricula",
+  "info": {
+    "name": "Curriculum",
+    "description": ""
+  },
+  "options": {
+    "increments": true,
+    "timestamps": true,
+    "draftAndPublish": true
+  },
+  "attributes": {
+    "timeslot": {
+      "model": "timeslot"
+    },
+    "Chapter": {
+      "type": "component",
+      "repeatable": true,
+      "component": "chapter.chapter"
+    },
+    "users_permissions_user": {
+      "plugin": "users-permissions",
+      "model": "user"
+    }
+  }
+}
