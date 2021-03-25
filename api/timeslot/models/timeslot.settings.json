@@ -13,6 +13,9 @@
   "attributes": {
     "date": {
       "type": "datetime"
+    },
+    "curriculum": {
+      "model": "curriculum"
     }
   }
 }

@@ -1,6 +1,7 @@
 "use strict";
 const { sanitizeEntity } = require("strapi-utils");
 const finder = require("strapi-utils/lib/finder");
+const curriculum = require("../../curriculum/controllers/curriculum");
 const stripe = require("stripe")(process.env.STRIPE_SK);
 
 /**
@@ -56,18 +57,22 @@ module.exports = {
    * @param {any} ctx
    */
   async create(ctx) {
-    const { course } = ctx.request.body;
+    const { product } = ctx.request.body;
+    console.log(product)
 
-    if (!course) {
-      return ctx.throw(400, "Please specify a course");
+    if (!product) {
+      return ctx.throw(400, "Please specify a product");
     }
 
-    console.log(course.id);
-
-    const realCourse = await strapi.services.course.findOne({ id: course.id });
-    if (!realCourse) {
-      return ctx.throw(400, "No course with such id");
+    if (product){
+      console.log('product is working', product)
     }
+
+    console.log("id is", product.id)
+
+    const realProduct = product.course_category ? await strapi.services.course.findOne({ id: product.id }) : await strapi.services.curriculum.findOne({ id: product.id })
+
+    console.log('the product is', realProduct)
 
     const { user } = ctx.state;
 
@@ -84,23 +89,28 @@ module.exports = {
           price_data: {
             currency: "eur",
             product_data: {
-              name: realCourse.title,
+              name: realProduct.title,
             },
-            unit_amount: fromDecimaltoInt(realCourse.price),
+            unit_amount: fromDecimaltoInt(realProduct.price),
           },
           quantity: 1,
         },
       ],
     });
 
+    console.log('session is', session)
+
     //Create the order
     const newOrder = await strapi.services.order.create({
       user: user.id,
-      course: realCourse.id,
-      total: realCourse.price,
+      course: realProduct.id,
+      curriculum: realProduct.id,
+      total: realProduct.price,
       status: "unpaid",
       checkout_session: session.id,
     });
+
+    console.log(newOrder)
 
     return { id: session.id };
   },

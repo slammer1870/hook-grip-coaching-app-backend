@@ -11,17 +11,29 @@
     "draftAndPublish": true
   },
   "attributes": {
-    "timeslot": {
-      "model": "timeslot"
-    },
     "Chapter": {
       "type": "component",
       "repeatable": true,
       "component": "chapter.chapter"
     },
-    "users_permissions_user": {
+    "user": {
       "plugin": "users-permissions",
       "model": "user"
+    },
+    "timeslot": {
+      "model": "timeslot"
+    },
+    "order": {
+      "via": "curriculum",
+      "model": "order"
+    },
+    "price": {
+      "type": "decimal",
+      "default": 49
+    },
+    "title": {
+      "type": "string",
+      "default": "Personal Curriculum"
     }
   }
 }
