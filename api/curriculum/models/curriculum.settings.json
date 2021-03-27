@@ -24,8 +24,8 @@
       "model": "timeslot"
     },
     "order": {
-      "via": "curriculum",
-      "model": "order"
+      "model": "order",
+      "via": "curriculum"
     },
     "price": {
       "type": "decimal",
@@ -34,6 +34,9 @@
     "title": {
       "type": "string",
       "default": "Personal Curriculum"
+    },
+    "meeting_url": {
+      "type": "string"
     }
   }
 }

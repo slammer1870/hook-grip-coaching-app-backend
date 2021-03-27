@@ -34,8 +34,8 @@
       "via": "orders"
     },
     "curriculum": {
-      "model": "curriculum",
-      "via": "order"
+      "via": "order",
+      "model": "curriculum"
     }
   }
 }

@@ -3,12 +3,17 @@ const { sanitizeEntity } = require("strapi-utils");
 const finder = require("strapi-utils/lib/finder");
 const curriculum = require("../../curriculum/controllers/curriculum");
 const stripe = require("stripe")(process.env.STRIPE_SK);
+const jwt = require("jsonwebtoken");
+const https = require("https");
+const { time } = require("console");
 
 /**
  * Given the product price, convert into cent
  * @param {any} number
  */
 const fromDecimaltoInt = (number) => parseInt(number * 100);
+
+function generateToken(publicKey, privateKey) {}
 /**
  * Read the documentation (https://strapi.io/documentation/developer-docs/latest/concepts/controllers.html#core-controllers)
  * to customize this controller
@@ -58,21 +63,14 @@ module.exports = {
    */
   async create(ctx) {
     const { product } = ctx.request.body;
-    console.log(product)
 
     if (!product) {
       return ctx.throw(400, "Please specify a product");
     }
 
-    if (product){
-      console.log('product is working', product)
-    }
-
-    console.log("id is", product.id)
-
-    const realProduct = product.course_category ? await strapi.services.course.findOne({ id: product.id }) : await strapi.services.curriculum.findOne({ id: product.id })
-
-    console.log('the product is', realProduct)
+    const realProduct = product.course_category
+      ? await strapi.services.course.findOne({ id: product.id })
+      : await strapi.services.curriculum.findOne({ id: product.id });
 
     const { user } = ctx.state;
 
@@ -98,7 +96,6 @@ module.exports = {
       ],
     });
 
-    console.log('session is', session)
 
     //Create the order
     const newOrder = await strapi.services.order.create({
@@ -109,8 +106,6 @@ module.exports = {
       status: "unpaid",
       checkout_session: session.id,
     });
-
-    console.log(newOrder)
 
     return { id: session.id };
   },
@@ -123,12 +118,74 @@ module.exports = {
 
     const session = await stripe.checkout.sessions.retrieve(checkout_session);
 
-    if (session.payment_status === 'paid') {
-      const updateOrder = await strapi.services.order.update({
-          checkout_session
+    if (session.payment_status === "paid") {
+      const updateOrder = await strapi.services.order.update(
+        {
+          checkout_session,
         },
-        { status: 'paid' }
+        { status: "paid" }
       );
+      const scheduleZoom = await strapi.services.order.findOne({
+        checkout_session,
+      });
+      
+      if (scheduleZoom.curriculum.timeslot) {
+        const timeslot = await strapi.services.timeslot.findOne({
+          id: scheduleZoom.curriculum.timeslot
+        });
+
+        const date = timeslot.date
+
+        const curriculum_id = timeslot.curriculum.id
+
+        const zoom = () => {
+          var token = jwt.sign(
+            {
+              iss: `${process.env.ZOOM_PK}`,
+              exp: Math.floor(Date.now() / 1000) + 60 * 60,
+            },
+            process.env.ZOOM_SK
+          );
+          
+          const data = JSON.stringify({
+            topic: "Hook Grip Schedule",
+            type: 2,
+            start_time: date,
+            settings: {
+              host_video: "true",
+              participant_video: "true",
+            },
+          });
+
+          const options = {
+            hostname: "api.zoom.us",
+            port: 443,
+            path: "/v2/users/" + process.env.ZOOM_ID + "/meetings",
+            method: "POST",
+            headers: {
+              "User-Agent": "Zoom-api-Jwt-Request",
+              "content-type": "application/json",
+              "Authorization": "Bearer" + token,
+            },
+          };
+
+          const req = https.request(options, (res) => {
+            console.log(`statusCode: ${res.statusCode}`);
+
+            res.on("data", (d) => {
+              process.stdout.write(d);
+            });
+          });
+
+          req.on("error", (error) => {
+            console.error(error);
+          });
+
+          req.write(data);
+          req.end();
+        };
+        zoom(timeslot.date);
+      }
       return sanitizeEntity(updateOrder, { model: strapi.models.order });
     } else {
       ctx.throw(
@@ -136,5 +193,5 @@ module.exports = {
         "The payment wasn't succesful, please try again or contact support"
       );
     }
-  }
+  },
 };

@@ -5,4 +5,11 @@
  * to customize this controller
  */
 
-module.exports = {};
+module.exports = {
+    /*async findOne(ctx) {
+        const { timeslot } = ctx.params;
+    
+        const entity = await strapi.services.timeslot.findOne({ timeslot });
+        return sanitizeEntity(entity, { model: strapi.models.timeslot });
+      },*/
+};
