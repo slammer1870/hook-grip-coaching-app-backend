@@ -21,9 +21,6 @@ module.exports = {
       }
 
     const { user } = ctx.state;
-    if (user) {
-        console.log(user, "user is good")
-      }
 
     const BASE_URL = ctx.request.headers.origin || "http://localhost:3000";
 

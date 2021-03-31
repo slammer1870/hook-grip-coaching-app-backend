@@ -96,7 +96,6 @@ module.exports = {
       ],
     });
 
-
     //Create the order
     const newOrder = await strapi.services.order.create({
       user: user.id,
@@ -128,17 +127,21 @@ module.exports = {
       const scheduleZoom = await strapi.services.order.findOne({
         checkout_session,
       });
-      
+
       if (scheduleZoom.curriculum.timeslot) {
         const timeslot = await strapi.services.timeslot.findOne({
-          id: scheduleZoom.curriculum.timeslot
+          id: scheduleZoom.curriculum.timeslot,
         });
 
-        const date = timeslot.date
+        console.log(scheduleZoom.curriculum.id)
 
-        const curriculum_id = timeslot.curriculum.id
+        const curriculum = await strapi.services.curriculum.findOne({
+          id: scheduleZoom.curriculum.id
+        });
 
-        const zoom = () => {
+        const date = timeslot.date;
+
+        const zoom = (id) => {
           var token = jwt.sign(
             {
               iss: `${process.env.ZOOM_PK}`,
@@ -146,7 +149,7 @@ module.exports = {
             },
             process.env.ZOOM_SK
           );
-          
+
           const data = JSON.stringify({
             topic: "Hook Grip Schedule",
             type: 2,
@@ -165,15 +168,25 @@ module.exports = {
             headers: {
               "User-Agent": "Zoom-api-Jwt-Request",
               "content-type": "application/json",
-              "Authorization": "Bearer" + token,
+              Authorization: "Bearer" + token,
             },
           };
 
           const req = https.request(options, (res) => {
             console.log(`statusCode: ${res.statusCode}`);
-
+            let data = "";
             res.on("data", (d) => {
-              process.stdout.write(d);
+              process.stdout.write(`this is the data ${d}`);
+              data += d;
+            });
+            res.on("end", async () => {
+              console.log(
+                `I think this is the url: ${JSON.parse(data).join_url}`
+              ); // 'Buy the milk
+              const updateUrl = await strapi.services.curriculum.update(
+                { id },
+                { meeting_url: JSON.parse(data).join_url }
+              );
             });
           });
 
@@ -184,7 +197,7 @@ module.exports = {
           req.write(data);
           req.end();
         };
-        zoom(timeslot.date);
+        zoom(curriculum.id);
       }
       return sanitizeEntity(updateOrder, { model: strapi.models.order });
     } else {
