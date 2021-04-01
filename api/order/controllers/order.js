@@ -12,8 +12,6 @@ const { time } = require("console");
  * @param {any} number
  */
 const fromDecimaltoInt = (number) => parseInt(number * 100);
-
-function generateToken(publicKey, privateKey) {}
 /**
  * Read the documentation (https://strapi.io/documentation/developer-docs/latest/concepts/controllers.html#core-controllers)
  * to customize this controller
@@ -68,6 +66,7 @@ module.exports = {
       return ctx.throw(400, "Please specify a product");
     }
 
+    //Checks whether order is for a course or a curriculum
     const realProduct = product.course_category
       ? await strapi.services.course.findOne({ id: product.id })
       : await strapi.services.curriculum.findOne({ id: product.id });
@@ -76,6 +75,7 @@ module.exports = {
 
     const BASE_URL = ctx.request.headers.origin || "http://localhost:3000";
 
+    //Creates the Stripe Checkout Session
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ["card"],
       customer_email: user.email,
@@ -128,20 +128,20 @@ module.exports = {
         checkout_session,
       });
 
+      //Performs Zoom scheduling if the order is for a curriculum
       if (scheduleZoom.curriculum.timeslot) {
         const timeslot = await strapi.services.timeslot.findOne({
           id: scheduleZoom.curriculum.timeslot,
         });
 
-        console.log(scheduleZoom.curriculum.id)
-
         const curriculum = await strapi.services.curriculum.findOne({
-          id: scheduleZoom.curriculum.id
+          id: scheduleZoom.curriculum.id,
         });
 
         const date = timeslot.date;
 
-        const zoom = (id) => {
+        //Zoom scheduling function
+        const zoom = (curriculum) => {
           var token = jwt.sign(
             {
               iss: `${process.env.ZOOM_PK}`,
@@ -172,6 +172,7 @@ module.exports = {
             },
           };
 
+          //HTTPS request to send POST request to Zoom with the selected timeslot
           const req = https.request(options, (res) => {
             console.log(`statusCode: ${res.statusCode}`);
             let data = "";
@@ -179,14 +180,27 @@ module.exports = {
               process.stdout.write(`this is the data ${d}`);
               data += d;
             });
+
+            //Update the curriculum with Zoom meeting lunk URL and sends confirmaion email
             res.on("end", async () => {
-              console.log(
-                `I think this is the url: ${JSON.parse(data).join_url}`
-              ); // 'Buy the milk
+
+              const id = curriculum.id;
               const updateUrl = await strapi.services.curriculum.update(
                 { id },
                 { meeting_url: JSON.parse(data).join_url }
               );
+
+              const user = curriculum.user.email;
+              const emailUser = await strapi.plugins[
+                "email"
+              ].services.email.send({
+                to: `${user}`,
+                from: `${process.env.ZOOM_ID}`,
+                replyTo: `${process.env.ZOOM_ID}`,
+                subject: "Booking Confirmation",
+                text: `Your meeting url is ${JSON.parse(data).join_url}`,
+                html: `Your meeting url is ${JSON.parse(data).join_url}`,
+              });
             });
           });
 
@@ -197,7 +211,7 @@ module.exports = {
           req.write(data);
           req.end();
         };
-        zoom(curriculum.id);
+        zoom(curriculum);
       }
       return sanitizeEntity(updateOrder, { model: strapi.models.order });
     } else {
