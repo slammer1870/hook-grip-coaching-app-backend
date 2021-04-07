@@ -4,7 +4,7 @@ const finder = require("strapi-utils/lib/finder");
 
 module.exports = {
 
-  /*async find(ctx) {
+  async find(ctx) {
     const { user } = ctx.state; //Magic user
 
     let entities;
@@ -23,19 +23,19 @@ module.exports = {
     return entities.map((entity) =>
       sanitizeEntity(entity, { model: strapi.models.order })
     );
-  },*/
+  },
   /**
    * Returns one order, as long as it belongs to the user
    * @param {any} ctx
    */
 
-  /*async findOne(ctx) {
+  async findOne(ctx) {
     const { id } = ctx.params;
     const { user } = ctx.state;
 
     const entity = await strapi.services.order.findOne({ id, user: user.id });
     return sanitizeEntity(entity, { model: strapi.models.order });
-  },*/
+  },
   /**
    * Returns one order, as long as it belongs to the user
    * @param {any} ctx
