@@ -29,13 +29,13 @@ module.exports = {
    * @param {any} ctx
    */
 
-  async findOne(ctx) {
+  /*async findOne(ctx) {
     const { id } = ctx.params;
     const { user } = ctx.state;
 
     const entity = await strapi.services.order.findOne({ id, user: user.id });
     return sanitizeEntity(entity, { model: strapi.models.order });
-  },
+  },*/
   /**
    * Returns one order, as long as it belongs to the user
    * @param {any} ctx
