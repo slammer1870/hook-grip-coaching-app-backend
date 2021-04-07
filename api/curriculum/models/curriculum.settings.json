@@ -37,6 +37,9 @@
     },
     "meeting_url": {
       "type": "string"
+    },
+    "name": {
+      "type": "string"
     }
   }
 }
