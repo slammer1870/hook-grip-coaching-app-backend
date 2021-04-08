@@ -4,7 +4,7 @@ const finder = require("strapi-utils/lib/finder");
 
 module.exports = {
 
-  async find(ctx) {
+  /*async find(ctx) {
     const { user } = ctx.state; //Magic user
 
     let entities;
@@ -29,7 +29,7 @@ module.exports = {
    * @param {any} ctx
    */
 
-  async findOne(ctx) {
+  /*async findOne(ctx) {
     const { id } = ctx.params;
     const { user } = ctx.state;
 
