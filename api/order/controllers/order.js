@@ -143,82 +143,82 @@ module.exports = {
 
         //Zoom scheduling function
         const zoom = (curriculum) => {
-          if (curriculum.meeting_url !== null) {
-            var token = jwt.sign(
-              {
-                iss: `${process.env.ZOOM_PK}`,
-                exp: Math.floor(Date.now() / 1000) + 60 * 60,
-              },
-              process.env.ZOOM_SK
-            );
+          var token = jwt.sign(
+            {
+              iss: `${process.env.ZOOM_PK}`,
+              exp: Math.floor(Date.now() / 1000) + 60 * 60,
+            },
+            process.env.ZOOM_SK
+          );
 
-            const data = JSON.stringify({
-              topic: "Hook Grip Schedule",
-              type: 2,
-              start_time: date,
-              settings: {
-                host_video: "true",
-                participant_video: "true",
-              },
+          const data = JSON.stringify({
+            topic: "Hook Grip Schedule",
+            type: 2,
+            start_time: date,
+            settings: {
+              host_video: "true",
+              participant_video: "true",
+            },
+          });
+
+          const options = {
+            hostname: "api.zoom.us",
+            port: 443,
+            path: "/v2/users/" + process.env.ZOOM_ID + "/meetings",
+            method: "POST",
+            headers: {
+              "User-Agent": "Zoom-api-Jwt-Request",
+              "content-type": "application/json",
+              Authorization: "Bearer" + token,
+            },
+          };
+
+          //HTTPS request to send POST request to Zoom with the selected timeslot
+          const req = https.request(options, (res) => {
+            console.log(`statusCode: ${res.statusCode}`);
+            let data = "";
+            res.on("data", (d) => {
+              process.stdout.write(`this is the data ${d}`);
+              data += d;
             });
 
-            const options = {
-              hostname: "api.zoom.us",
-              port: 443,
-              path: "/v2/users/" + process.env.ZOOM_ID + "/meetings",
-              method: "POST",
-              headers: {
-                "User-Agent": "Zoom-api-Jwt-Request",
-                "content-type": "application/json",
-                Authorization: "Bearer" + token,
-              },
-            };
+            //Update the curriculum with Zoom meeting lunk URL and sends confirmaion email
+            res.on("end", async () => {
+              const id = curriculum.id;
+              const updateUrl = await strapi.services.curriculum.update(
+                { id },
+                { meeting_url: JSON.parse(data).join_url }
+              );
 
-            //HTTPS request to send POST request to Zoom with the selected timeslot
-            const req = https.request(options, (res) => {
-              console.log(`statusCode: ${res.statusCode}`);
-              let data = "";
-              res.on("data", (d) => {
-                process.stdout.write(`this is the data ${d}`);
-                data += d;
-              });
+              const updateTimeslot = await strapi.services.timeslot.update(
+                { id: timeslotId },
+                { curriculum: id }
+              );
 
-              //Update the curriculum with Zoom meeting lunk URL and sends confirmaion email
-              res.on("end", async () => {
-                const id = curriculum.id;
-                const updateUrl = await strapi.services.curriculum.update(
-                  { id },
-                  { meeting_url: JSON.parse(data).join_url }
-                );
-
-                const updateTimeslot = await strapi.services.timeslot.update(
-                  { id: timeslotId },
-                  { curriculum: id }
-                );
-
-                const user = curriculum.user.email;
-                const emailUser = await strapi.plugins[
-                  "email"
-                ].services.email.send({
-                  to: `${user}`,
-                  from: `${process.env.ZOOM_ID}`,
-                  replyTo: `${process.env.ZOOM_ID}`,
-                  subject: "Booking Confirmation",
-                  text: `Your meeting url is ${JSON.parse(data).join_url}`,
-                  html: `Your meeting url is ${JSON.parse(data).join_url}`,
-                });
+              const user = curriculum.user.email;
+              const emailUser = await strapi.plugins[
+                "email"
+              ].services.email.send({
+                to: `${user}`,
+                from: `${process.env.ZOOM_ID}`,
+                replyTo: `${process.env.ZOOM_ID}`,
+                subject: "Booking Confirmation",
+                text: `Your meeting url is ${JSON.parse(data).join_url}`,
+                html: `Your meeting url is ${JSON.parse(data).join_url}`,
               });
             });
+          });
 
-            req.on("error", (error) => {
-              console.error(error);
-            });
+          req.on("error", (error) => {
+            console.error(error);
+          });
 
-            req.write(data);
-            req.end();
-          }
+          req.write(data);
+          req.end();
         };
-        zoom(curriculum);
+        if(curriculum.meeting_url == null){
+          zoom(curriculum);
+        }
       }
       return sanitizeEntity(updateOrder, { model: strapi.models.order });
     } else {
