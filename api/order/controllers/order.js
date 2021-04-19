@@ -139,7 +139,6 @@ module.exports = {
         });
 
         const date = timeslot.date;
-        const timeslotId = timeslot.id;
 
         //Zoom scheduling function
         const zoom = (curriculum) => {
@@ -192,7 +191,7 @@ module.exports = {
 
               const timeslotId = curriculum.timeslot.id;
               const updateTimeslot = await strapi.services.timeslot.update(
-                timeslotId,
+                { id: timeslotId },
                 { curriculum: id }
               );
 
