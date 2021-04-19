@@ -192,7 +192,7 @@ module.exports = {
 
               const timeslotId = curriculum.timeslot.id;
               const updateTimeslot = await strapi.services.timeslot.update(
-                { id: timeslotId },
+                timeslotId,
                 { curriculum: id }
               );
 
