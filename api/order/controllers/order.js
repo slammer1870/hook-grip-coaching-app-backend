@@ -139,6 +139,7 @@ module.exports = {
         });
 
         const date = timeslot.date;
+        const timeslotId = timeslot.id;
 
         //Zoom scheduling function
         const zoom = (curriculum) => {
