@@ -32,6 +32,10 @@
     "course": {
       "model": "course",
       "via": "orders"
+    },
+    "curriculum": {
+      "via": "order",
+      "model": "curriculum"
     }
   }
 }

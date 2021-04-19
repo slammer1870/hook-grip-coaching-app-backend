@@ -3,18 +3,44 @@ module.exports = ({ env }) => {
   if (env("NODE_ENV") === "production") {
     return {
       upload: {
-        provider: "aws-s3",
+        provider: "cloudinary",
         providerOptions: {
-          accessKeyId: env("AWS_ACCESS_KEY_ID"),
-          secretAccessKey: env("AWS_ACCESS_SECRET"),
-          region: env("AWS_REGION"),
-          params: {
-            Bucket: env("AWS_BUCKET"),
-          },
+          cloud_name: env("CLOUDINARY_NAME"),
+          api_key: env("CLOUDINARY_KEY"),
+          api_secret: env("CLOUDINARY_SECRET"),
+        },
+        actionOptions: {
+          upload: {},
+          delete: {},
+        },
+      },
+      email: {
+        provider: "sendgrid",
+        providerOptions: {
+          apiKey: env("SENDGRID_API_KEY"),
+        },
+        settings: {
+          defaultFrom: "sam@execbjj.com",
+          defaultReplyTo: "sam@execbjj.com",
+          testAddress: "sam.mcnally94@gmail.com",
         },
       },
       // ...
     };
   }
-  return {}
+  if (env("NODE_ENV") === "development") {
+    return {
+      email: {
+        provider: "sendgrid",
+        providerOptions: {
+          apiKey: env("SENDGRID_API_KEY"),
+        },
+        settings: {
+          defaultFrom: "sam@execbjj.com",
+          defaultReplyTo: "sam@execbjj.com",
+          testAddress: "sam.mcnally94@gmail.com",
+        },
+      },
+    };
+  }
 };

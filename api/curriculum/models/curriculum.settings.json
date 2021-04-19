@@ -11,17 +11,35 @@
     "draftAndPublish": true
   },
   "attributes": {
-    "timeslot": {
-      "model": "timeslot"
-    },
     "Chapter": {
       "type": "component",
       "repeatable": true,
       "component": "chapter.chapter"
     },
-    "users_permissions_user": {
+    "user": {
       "plugin": "users-permissions",
       "model": "user"
+    },
+    "timeslot": {
+      "model": "timeslot"
+    },
+    "order": {
+      "model": "order",
+      "via": "curriculum"
+    },
+    "price": {
+      "type": "decimal",
+      "default": 49
+    },
+    "title": {
+      "type": "string",
+      "default": "Personal Curriculum"
+    },
+    "meeting_url": {
+      "type": "string"
+    },
+    "name": {
+      "type": "string"
     }
   }
 }

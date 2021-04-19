@@ -1,7 +1,11 @@
 "use strict";
 const { sanitizeEntity } = require("strapi-utils");
 const finder = require("strapi-utils/lib/finder");
+const curriculum = require("../../curriculum/controllers/curriculum");
 const stripe = require("stripe")(process.env.STRIPE_SK);
+const jwt = require("jsonwebtoken");
+const https = require("https");
+const { time } = require("console");
 
 /**
  * Given the product price, convert into cent
@@ -56,23 +60,22 @@ module.exports = {
    * @param {any} ctx
    */
   async create(ctx) {
-    const { course } = ctx.request.body;
+    const { product } = ctx.request.body;
 
-    if (!course) {
-      return ctx.throw(400, "Please specify a course");
+    if (!product) {
+      return ctx.throw(400, "Please specify a product");
     }
 
-    console.log(course.id);
-
-    const realCourse = await strapi.services.course.findOne({ id: course.id });
-    if (!realCourse) {
-      return ctx.throw(400, "No course with such id");
-    }
+    //Checks whether order is for a course or a curriculum
+    const realProduct = product.course_category
+      ? await strapi.services.course.findOne({ id: product.id })
+      : await strapi.services.curriculum.findOne({ id: product.id });
 
     const { user } = ctx.state;
 
     const BASE_URL = ctx.request.headers.origin || "http://localhost:3000";
 
+    //Creates the Stripe Checkout Session
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ["card"],
       customer_email: user.email,
@@ -84,9 +87,9 @@ module.exports = {
           price_data: {
             currency: "eur",
             product_data: {
-              name: realCourse.title,
+              name: realProduct.title,
             },
-            unit_amount: fromDecimaltoInt(realCourse.price),
+            unit_amount: fromDecimaltoInt(realProduct.price),
           },
           quantity: 1,
         },
@@ -96,8 +99,9 @@ module.exports = {
     //Create the order
     const newOrder = await strapi.services.order.create({
       user: user.id,
-      course: realCourse.id,
-      total: realCourse.price,
+      course: realProduct.id,
+      curriculum: realProduct.id,
+      total: realProduct.price,
       status: "unpaid",
       checkout_session: session.id,
     });
@@ -113,12 +117,109 @@ module.exports = {
 
     const session = await stripe.checkout.sessions.retrieve(checkout_session);
 
-    if (session.payment_status === 'paid') {
-      const updateOrder = await strapi.services.order.update({
-          checkout_session
+    if (session.payment_status === "paid") {
+      const updateOrder = await strapi.services.order.update(
+        {
+          checkout_session,
         },
-        { status: 'paid' }
+        { status: "paid" }
       );
+      const scheduleZoom = await strapi.services.order.findOne({
+        checkout_session,
+      });
+
+      //Performs Zoom scheduling if the order is for a curriculum
+      if (scheduleZoom.curriculum.timeslot) {
+        const timeslot = await strapi.services.timeslot.findOne({
+          id: scheduleZoom.curriculum.timeslot,
+        });
+
+        const curriculum = await strapi.services.curriculum.findOne({
+          id: scheduleZoom.curriculum.id,
+        });
+
+        const date = timeslot.date;
+        const timeslotId = timeslot.id;
+
+        //Zoom scheduling function
+        const zoom = (curriculum) => {
+          var token = jwt.sign(
+            {
+              iss: `${process.env.ZOOM_PK}`,
+              exp: Math.floor(Date.now() / 1000) + 60 * 60,
+            },
+            process.env.ZOOM_SK
+          );
+
+          const data = JSON.stringify({
+            topic: "Hook Grip Schedule",
+            type: 2,
+            start_time: date,
+            settings: {
+              host_video: "true",
+              participant_video: "true",
+            },
+          });
+
+          const options = {
+            hostname: "api.zoom.us",
+            port: 443,
+            path: "/v2/users/" + process.env.ZOOM_ID + "/meetings",
+            method: "POST",
+            headers: {
+              "User-Agent": "Zoom-api-Jwt-Request",
+              "content-type": "application/json",
+              Authorization: "Bearer" + token,
+            },
+          };
+
+          //HTTPS request to send POST request to Zoom with the selected timeslot
+          const req = https.request(options, (res) => {
+            console.log(`statusCode: ${res.statusCode}`);
+            let data = "";
+            res.on("data", (d) => {
+              process.stdout.write(`this is the data ${d}`);
+              data += d;
+            });
+
+            //Update the curriculum with Zoom meeting lunk URL and sends confirmaion email
+            res.on("end", async () => {
+              const id = curriculum.id;
+              const updateUrl = await strapi.services.curriculum.update(
+                { id },
+                { meeting_url: JSON.parse(data).join_url }
+              );
+
+              const updateTimeslot = await strapi.services.timeslot.update(
+                { id: timeslotId },
+                { curriculum: id }
+              );
+
+              const user = curriculum.user.email;
+              const emailUser = await strapi.plugins[
+                "email"
+              ].services.email.send({
+                to: `${user}`,
+                from: `${process.env.ZOOM_ID}`,
+                replyTo: `${process.env.ZOOM_ID}`,
+                subject: "Booking Confirmation",
+                text: `Your meeting url is ${JSON.parse(data).join_url}`,
+                html: `Your meeting url is ${JSON.parse(data).join_url}`,
+              });
+            });
+          });
+
+          req.on("error", (error) => {
+            console.error(error);
+          });
+
+          req.write(data);
+          req.end();
+        };
+        if(curriculum.meeting_url == null){
+          zoom(curriculum);
+        }
+      }
       return sanitizeEntity(updateOrder, { model: strapi.models.order });
     } else {
       ctx.throw(
@@ -126,5 +227,5 @@ module.exports = {
         "The payment wasn't succesful, please try again or contact support"
       );
     }
-  }
+  },
 };
